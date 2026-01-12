@@ -1,0 +1,99 @@
+#!/bin/sh
+
+#Importing the sequences into QIIME2
+
+qiime tools import \
+--type 'SampleData[PairedEndSequencesWithQuality]' \
+--input-path FASTQ \
+--input-format CasavaOneEightSingleLanePerSampleDirFmt \
+--output-path demux.qza
+
+qiime demux summarize \
+  --i-data demux.qza \
+  --o-visualization demux.qzv
+
+#Run the dada2 tool
+qiime dada2 denoise-paired \
+--i-demultiplexed-seqs demux.qza \
+--p-trim-left-f 20 \
+--p-trim-left-r 20 \
+--p-trunc-len-f 280 \
+--p-trunc-len-r 280 \
+--p-n-threads 0 \
+--p-pooling-method 'pseudo' \
+--o-representative-sequences asv-seqs.qza \
+--o-table feature-table.qza \
+--o-denoising-stats dada2-stats.qza \
+--verbose
+
+#Visualising the outputs
+qiime metadata tabulate \
+  --m-input-file dada2-stats.qza \
+  --o-visualization dada2-stats-summ.qzv 
+
+qiime feature-table summarize \
+  --i-table feature-table.qza \
+  --o-visualization feature-table-summ.qzv
+
+qiime feature-table tabulate-seqs \
+  --i-data asv-seqs.qza \
+  --o-visualization asv-sequences-summ.qzv  
+
+#Assigning the taxonomy
+qiime feature-classifier classify-sklearn \
+--i-classifier ~/Documents/silva-138-99-nb-classifier.qza \
+--i-reads asv-seqs.qza \
+--output-dir Analysis/taxonomy \
+--p-n-jobs 1 \
+--verbose
+
+#Build the tree
+qiime phylogeny align-to-tree-mafft-fasttree \
+--i-sequences asv-seqs.qza \
+--o-alignment aligned_16s_representative_seqs.qza \
+--o-masked-alignment masked_aligned_16s_representative_seqs.qza \
+--o-tree 16s_unrooted_tree.qza \
+--o-rooted-tree 16s_rooted_tree.qza \
+--p-n-threads 1 \
+--verbose
+
+#Save outputs for R
+#Tree
+
+qiime tools export \
+  --input-path 16s_unrooted_tree.qza \
+  --output-path Analysis/export
+
+qiime tools export \
+  --input-path 16s_rooted_tree.qza \
+  --output-path Analysis/export
+
+#ASV counts
+qiime tools export \
+  --input-path feature-table.qza \
+  --output-path Analysis/export
+
+biom convert \
+-i Analysis/export/feature-table.biom \
+-o Analysis/export/feature-table.tsv \
+--to-tsv
+
+#Taxonomy
+qiime tools export \
+--input-path Analysis/taxonomy/classification.qza \
+--output-path Analysis/export
+
+##===Here is the end in conda as don't want to add metadata?===
+
+#Combining taxonomy with feature table
+#sed 's/Feature ID/#OTUID/' Analysis/export/taxonomy.tsv | sed 's/Taxon/taxonomy/' | sed 's/#Confidence/confidence/' > Analysis/export/biom-taxonomy.tsv
+     
+#head -n 2 Analysis/export/biom-taxonomy.tsv
+
+#biom add-metadata \
+    #-i Analysis/export/feature-table.biom \
+    #-o Analysis/export/table-with-taxonomyv2.biom \
+    #--observation-metadata-fp Analysis/export/biom-taxonomy.tsv \
+    #--sc-separated taxonomy 
+
+#Use the outputs for R analysis and visualisation

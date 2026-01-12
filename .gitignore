@@ -1,0 +1,17 @@
+# macOS junk
+.DS_Store
+
+# R session files
+.Rhistory
+.RData
+.Rproj.user/
+
+# Large / derived data
+Phyloseq_objects/
+QIIME2_outputs/
+Results/
+
+# Raw sequencing data
+*.fastq
+*.fastq.gz
+
