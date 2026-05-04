@@ -1,4 +1,4 @@
-### Description: Analysing MCstudy 16S dataset        ###
+### Description: Analyzing MCstudy 16S dataset        ###
 ### Author: Anna Li, date: 08012026                   ###
 ### Email: anna.li@adelaide.edu.au                    ###
 
@@ -47,13 +47,9 @@ taxa = read.delim(
 taxa_clean <- taxa %>%
   separate(Taxon,
            into=c("Domain","Phylum","Class","Order","Family","Genus","Species"),
-           sep=";", fill="right", remove=FALSE)
+           sep=";", fill="right", remove=FALSE) %>% mutate(across(Domain:Species, ~ sub("^[a-z]__","", .)))
 
-# Remove prefixes (d__, p__, etc.)
-taxa_clean <- taxa_clean %>%
-  mutate(across(Domain:Species, ~ sub("^[a-z]__","", .)))
-
-# Drop the Taxon column
+# Drop the Taxon column ( after checking, otherwise can get rid of "remove = FALSE" in prior code)
 taxa_clean$Taxon <- NULL
 
 # Replace na. and empty or uncultured strings everywhere with "Unclassified"
@@ -126,7 +122,6 @@ metadata_df <- as.data.frame(metadata_clean)
 rownames(metadata_df) <- metadata_df$SampleID
 ### Now create phyloseq sample_data 
 map_data <- phyloseq::sample_data(metadata_df)
-
 
 # Create phyloseq object with raw counts - use for alpha diversity, DESeq2 and other rarefraction-based metrics
 physeq_raw <- phyloseq(OTU_raw, tax_mat, map_data)
