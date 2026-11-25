@@ -29,7 +29,7 @@ barplot_donor_family <- psmelt(barplot_donor) #Melt phyloseq table into a data f
 
 barplot_donor_family$Family[is.na(barplot_donor_family$Family)] <- "Unclassified"
 
-#list of genus
+#list of family
 unique_family <- unique(taxa_filtered$Family)
 unique_family
 
@@ -79,9 +79,14 @@ barplot_donor <- ggplot(barplot_donor_family, aes(x = Unique_mouse_ID, y = Abund
   geom_bar(stat = "identity") +
   facet_wrap(~ Donor_ID, scales = "free_x") +
   scale_fill_manual(values = family_colour) +
-  theme_minimal() +
+  theme_minimal(base_size = 14) +
+  theme(plot.title = element_text(size = 14, face = "bold", hjust = 0.5),
+        axis.line = element_line(
+          linewidth = 0.5,
+          linetype = "solid"
+        ))+
   theme(axis.text.x = element_text(angle = 45, hjust = 1))+
-  labs(title = paste("Relative Abundance (Family level)"), x = "sample", y = "Relative Abundance")
+  labs(title = paste("Bone marrow donor gut microbiome by study"), x = NULL, y = "Relative Abundance")
 
 barplot_donor
 
@@ -111,20 +116,36 @@ physeq_day21 <- subset_samples(physeq_prop, Timepoint == "d21")
 physeq_day28 <- subset_samples(physeq_prop, Timepoint == "d28")
 physeq_day35 <- subset_samples(physeq_prop, Timepoint == "d35")
 
-## Define as family level - adjust for physeq object ***here*** as needed
-barplot <- tax_glom(physeq_day21, taxrank = "Family")
-barplot_recipient_family <- psmelt(barplot) #Melt phyloseq table into a data frame for plotting
+## Define as XXX level - adjust for physeq object ***here*** as needed
+barplot <- tax_glom(physeq_day0, taxrank = "Genus")
+barplot_recipient_genus <- psmelt(barplot) #Melt phyloseq table into a data frame for plotting
 #define unclassified
-barplot_recipient_family$Family[is.na(barplot_donor_family$Family)] <- "Unclassified"
+barplot_recipient_genus$Genus[is.na(barplot_donor_genus$Genus)] <- "Unclassified"
+
+library(randomcoloR)
+
+num_taxa <- length(unique(barplot_recipient_genus$Genus))
+taxonomy_colors <- distinctColorPalette(k = num_taxa)
 
 ##Plot family bar graph
 barplot <- ggplot(barplot_recipient_family, aes(x = Unique_mouse_ID, y = Abundance, fill = Family)) +
   geom_bar(stat = "identity") +
   facet_wrap(~ Donor_ID, scales = "free_x") +
-  scale_fill_manual(values = family_colour) +
+ scale_fill_manual(values = family_colour) +
   theme_minimal() +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))+
-  labs(title = paste("Relative Abundance by donor ID - Day21"), x = "sample", y = "Relative Abundance")
+  labs(title = paste("Relative Abundance by donor ID - Day0"), x = "sample", y = "Relative Abundance")
+
+barplot
+
+##Plot genus bar graph
+barplot <- ggplot(barplot_recipient_genus, aes(x = Unique_mouse_ID, y = Abundance, fill = Genus)) +
+  geom_bar(stat = "identity") +
+  facet_wrap(~ Donor_ID, scales = "free_x") +
+  scale_fill_manual(values = taxonomy_colors) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))+
+  labs(title = paste("Relative Abundance by donor ID - Day0"), x = "sample", y = "Relative Abundance")
 
 barplot
 
@@ -261,7 +282,7 @@ save_plot <- function(plot_obj, filename, width = 12, height = 8) {
 }
 
 #Saving graphs
-save_plot(barplot_donor, "barplot_donor.pdf")
-save_plot(barplot, "barplot_recipients.pdf")
+save_plot(barplot_donor, "barplot_donor.pdf", width = 10)
+save_plot(barplot, "barplot_recipients_day0.pdf")
 save_plot(genus_trajetory, "MBC2 trajectory of Eggerthellaceae.pdf", width= 6, height=4)
 save_plot(family_trajetory, "MBC2 Family level trajectory of Lactobacillaceae.pdf", width= 6, height=4)
